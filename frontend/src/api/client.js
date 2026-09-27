@@ -33,8 +33,8 @@ export const apiClient = {
   /** POST /api/scan — submit a repository URL for scanning */
   scan: (repoUrl) => request('POST', '/api/scan', { repoUrl }),
 
-  /** POST /api/diagnose — generate findings from a completed scan */
-  diagnose: (scanId) => request('POST', '/api/diagnose', { scanId }),
+  /** POST /api/diagnose — generate findings from a completed scan result */
+  diagnose: (scanResult) => request('POST', '/api/diagnose', scanResult),
 
   /** POST /api/prescribe — build a prescription from a selected finding */
   prescribe: (findingId) => request('POST', '/api/prescribe', { findingId }),

@@ -1,4 +1,4 @@
-import { ArrowLeft, AlertTriangle, CheckCircle2, CircleHelp } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, CheckCircle2, CircleHelp, Stethoscope } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ScoreCard from '../components/ScoreCard';
 import { useWorkflow } from '../context/WorkflowContext';
@@ -152,7 +152,18 @@ export default function HealthDashboard() {
           </div>
         </section>
 
-        <section aria-labelledby="limitations-title" className="mt-8 border-t border-slate-200 py-6">
+        <section aria-label="Next step" className="mt-8 border-t border-slate-200 pt-6">
+          <button
+            type="button"
+            onClick={() => navigate('/diagnosis')}
+            className="flex items-center gap-2 rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
+          >
+            <Stethoscope aria-hidden="true" className="size-4" />
+            Diagnose repository
+          </button>
+        </section>
+
+        <section aria-labelledby="limitations-title" className="mt-0 border-t border-slate-200 py-6">
           <div className="mb-3 flex items-center gap-2">
             <h2 id="limitations-title" className="text-lg font-semibold">Scan limitations</h2>
             {scanResult.truncated === false && skippedPaths?.length === 0 && (

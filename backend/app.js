@@ -20,5 +20,6 @@ app.use('/api/diagnose',  require('./routes/diagnose'));
 app.use('/api/prescribe', require('./routes/prescribe'));
 app.use('/api/treat',     require('./routes/treat'));
 app.use('/api/verify',    require('./routes/verify'));
+app.use('/api/before-after', require('./routes/beforeAfter'));
 
 module.exports = app;

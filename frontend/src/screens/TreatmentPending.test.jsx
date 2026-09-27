@@ -30,6 +30,8 @@ const WORKFLOW_RESULT = {
     verificationResult: {
         status: 'passed',
         checksRun: ['node --check src/index.js'],
+        passedChecks: ['node --check src/index.js'],
+        failedChecks: [],
         outputSummary: 'node output and API_KEY=secret-value',
         changedFiles: ['src/index.js'],
     },
@@ -105,7 +107,7 @@ describe('TreatmentPending controlled workflow', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Start treatment' }));
 
-        await screen.findByRole('heading', { name: 'Treatment complete' });
+        await screen.findByRole('heading', { name: 'Treatment workflow complete' });
         expect(globalThis.fetch).toHaveBeenCalledTimes(1);
         const [url, options] = globalThis.fetch.mock.calls[0];
         expect(url).toContain('/api/treatment-workflow');
@@ -126,7 +128,7 @@ describe('TreatmentPending controlled workflow', () => {
         expect(globalThis.fetch).toHaveBeenCalledTimes(1);
 
         resolveFetch(successfulResponse());
-        await screen.findByRole('heading', { name: 'Treatment complete' });
+        await screen.findByRole('heading', { name: 'Treatment workflow complete' });
     });
 
     test('renders safe workflow details and stores the normalized result', async () => {
@@ -134,12 +136,14 @@ describe('TreatmentPending controlled workflow', () => {
         renderTreatment();
         fireEvent.click(screen.getByRole('button', { name: 'Start treatment' }));
 
-        expect(await screen.findByText('Before score')).toBeTruthy();
-        expect(screen.getByText('After score')).toBeTruthy();
-        expect(screen.getByText('Score change')).toBeTruthy();
+        expect(await screen.findByText('Before')).toBeTruthy();
+        expect(screen.getByText('After')).toBeTruthy();
+        expect(screen.getByText('Change')).toBeTruthy();
         expect(document.body.textContent).toContain('+2');
-        expect(screen.getByText('Yes')).toBeTruthy();
+        expect(screen.getByText('Improved')).toBeTruthy();
+        expect(screen.getAllByText('Passed')).toHaveLength(2);
         expect(screen.getByText('src/index.js')).toBeTruthy();
+        expect(screen.getByText('JavaScript syntax check: src/index.js')).toBeTruthy();
         expect(screen.getByText(WORKFLOW_RESULT.beforeAfter.summary)).toBeTruthy();
         expect(workflowState.setTreatmentWorkflowResult).toHaveBeenCalledWith(WORKFLOW_RESULT);
 
@@ -164,8 +168,63 @@ describe('TreatmentPending controlled workflow', () => {
         expect(document.body.textContent).not.toContain('secret-value');
 
         fireEvent.click(screen.getByRole('button', { name: 'Retry workflow' }));
-        await screen.findByRole('heading', { name: 'Treatment complete' });
+        await screen.findByRole('heading', { name: 'Treatment workflow complete' });
         expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('uses returned equal scores and improved=false to show no improvement', async () => {
+        const unchangedResult = {
+            ...WORKFLOW_RESULT,
+            beforeAfter: {
+                ...WORKFLOW_RESULT.beforeAfter,
+                beforeScore: 54,
+                afterScore: 54,
+                scoreDelta: 0,
+                improved: false,
+                summary: 'Health score was unchanged; verification passed. 1 approved changed file was confirmed.',
+            },
+        };
+        globalThis.fetch.mockResolvedValue(successfulResponse(unchangedResult));
+        renderTreatment();
+        fireEvent.click(screen.getByRole('button', { name: 'Start treatment' }));
+
+        await screen.findByText('No improvement');
+        expect(screen.getAllByText('54')).toHaveLength(2);
+        expect(screen.getByText('Change').parentElement.textContent).toContain('0');
+        expect(screen.getByText('Change').parentElement.textContent).not.toContain('+0');
+    });
+
+    test('shows applied treatment and failed verification from a failed workflow result', async () => {
+        const failedVerificationResult = {
+            ...WORKFLOW_RESULT,
+            status: 'failed',
+            verificationResult: {
+                ...WORKFLOW_RESULT.verificationResult,
+                status: 'failed',
+                passedChecks: [],
+                failedChecks: [{
+                    check: 'node --check src/index.js',
+                    exitCode: 1,
+                    output: 'C:\\private\\source.js API_KEY=secret-output',
+                }],
+            },
+            beforeAfter: {
+                ...WORKFLOW_RESULT.beforeAfter,
+                improved: false,
+                summary: 'Health score was unchanged; verification failed. 1 approved changed file was confirmed.',
+            },
+        };
+        globalThis.fetch.mockResolvedValue(successfulResponse(failedVerificationResult));
+        renderTreatment();
+        fireEvent.click(screen.getByRole('button', { name: 'Start treatment' }));
+
+        expect(await screen.findByRole('heading', { name: 'Treatment workflow needs attention' })).toBeTruthy();
+        expect(screen.getByText('Applied')).toBeTruthy();
+        expect(screen.getAllByText('Failed')).toHaveLength(2);
+        expect(screen.getByText('No improvement')).toBeTruthy();
+        expect(document.body.textContent).not.toContain('C:\\private');
+        expect(document.body.textContent).not.toContain('secret-output');
+        expect(document.body.textContent).not.toContain('node --check');
     });
 
     test('redirects to prescription when workspace ID is missing', async () => {
@@ -192,7 +251,7 @@ describe('TreatmentPending controlled workflow', () => {
     test('does not automatically resubmit a saved workflow result', async () => {
         renderTreatment({ treatmentWorkflowResult: WORKFLOW_RESULT });
 
-        expect(await screen.findByRole('heading', { name: 'Treatment complete' })).toBeTruthy();
+        expect(await screen.findByRole('heading', { name: 'Treatment workflow complete' })).toBeTruthy();
         expect(globalThis.fetch).not.toHaveBeenCalled();
     });
 });

@@ -47,4 +47,10 @@ export const apiClient = {
 
   /** POST /api/verify — verify treatment and compute before/after */
   verify: (treatmentId) => request('POST', '/api/verify', { treatmentId }),
+
+  /** POST /api/treatment-workflow — apply and verify treatment in a controlled workspace */
+  treatmentWorkflow: (workspaceId, finding) => request('POST', '/api/treatment-workflow', {
+    workspaceId,
+    finding,
+  }),
 };

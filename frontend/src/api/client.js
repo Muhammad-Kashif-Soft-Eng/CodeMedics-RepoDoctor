@@ -36,8 +36,11 @@ export const apiClient = {
   /** POST /api/diagnose — generate findings from a completed scan result */
   diagnose: (scanResult) => request('POST', '/api/diagnose', scanResult),
 
-  /** POST /api/prescribe — build a prescription from a selected finding */
-  prescribe: (findingId) => request('POST', '/api/prescribe', { findingId }),
+  /** POST /api/prescribe — build a prescription from scan evidence and one finding */
+  prescribe: (scanResult, selectedFinding) => request('POST', '/api/prescribe', {
+    ...scanResult,
+    selectedFinding,
+  }),
 
   /** POST /api/treat — execute an approved prescription */
   treat: (prescriptionId) => request('POST', '/api/treat', { prescriptionId }),

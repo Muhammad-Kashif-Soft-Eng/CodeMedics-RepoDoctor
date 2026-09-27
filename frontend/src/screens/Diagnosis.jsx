@@ -6,13 +6,20 @@ import { useWorkflow } from '../context/WorkflowContext';
 import FindingCard from '../components/FindingCard';
 
 export default function Diagnosis() {
-  const { scanResult, findings, setFindings, selectedFinding, setSelectedFinding } = useWorkflow();
+  const {
+    scanResult,
+    findings,
+    setFindings,
+    selectedFinding,
+    setSelectedFinding,
+    setPrescription,
+  } = useWorkflow();
   const navigate = useNavigate();
   const started = useRef(false);
 
   // Derive initial status from context: if findings already exist (back-navigation),
   // start in 'done' so we never call the API again.
-  const [status, setStatus]     = useState(() => (findings.length > 0 ? 'done' : 'idle'));
+  const [status, setStatus] = useState(() => (findings.length > 0 ? 'done' : 'idle'));
   const [errorMsg, setErrorMsg] = useState('');
 
   // ── Guard: must have a scan result before diagnosing ─────────────────────────
@@ -67,8 +74,9 @@ export default function Diagnosis() {
   function handleSelect(finding) {
     // Clicking the already-selected finding deselects it
     const isSame = selectedFinding?.title === finding.title &&
-                   selectedFinding?.category === finding.category &&
-                   selectedFinding?.severity === finding.severity;
+      selectedFinding?.category === finding.category &&
+      selectedFinding?.severity === finding.severity;
+    setPrescription(null);
     setSelectedFinding(isSame ? null : finding);
   }
 
@@ -216,10 +224,12 @@ export default function Diagnosis() {
           <button
             type="button"
             disabled={!selectedFinding}
-            onClick={() => navigate('/prescription')}
+            onClick={() => {
+              if (selectedFinding) navigate('/prescription');
+            }}
             className="flex items-center gap-2 rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Create prescription
+            Create Prescription
             <ArrowRight aria-hidden="true" className="size-4" />
           </button>
         </div>

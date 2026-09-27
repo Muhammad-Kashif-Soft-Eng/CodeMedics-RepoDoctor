@@ -20,7 +20,12 @@ const categoryScoresSchema = new mongoose.Schema(
 // It is set once at insert and never changes — use it wherever scan time is needed.
 const scanResultSchema = new mongoose.Schema(
   {
-    repoUrl:           { type: String, required: true, trim: true },
+    // ── Repository identity (populated at intake, before tree analysis) ─────────
+    repoUrl:       { type: String, required: true, trim: true },
+    owner:         { type: String, required: true, trim: true },
+    repo:          { type: String, required: true, trim: true },
+    defaultBranch: { type: String, required: true, trim: true },
+    // ── Scanner signal fields (populated by tree-analysis stage) ────────────────
     structure:         { type: mongoose.Schema.Types.Mixed, default: {} },
     testingSignals:    { type: mongoose.Schema.Types.Mixed, default: {} },
     docSignals:        { type: mongoose.Schema.Types.Mixed, default: {} },

@@ -11,15 +11,19 @@ export default function Prescription() {
     selectedFinding,
     prescription,
     setPrescription,
+    setWorkspaceId,
   } = useWorkflow();
   const navigate = useNavigate();
   const requestStarted = useRef(false);
   const requestInFlight = useRef(false);
+  const workspaceRequestInFlight = useRef(false);
   const [requestAttempt, setRequestAttempt] = useState(0);
   const [status, setStatus] = useState(prescription ? 'ready' : 'loading');
+  const [workspaceStatus, setWorkspaceStatus] = useState('idle');
+  const [workspaceError, setWorkspaceError] = useState('');
 
   useEffect(() => {
-    if (!scanResult || !selectedFinding) {
+    if (!scanResult || !scanResult.scanId || !selectedFinding) {
       navigate('/diagnosis', { replace: true });
       return;
     }
@@ -53,13 +57,36 @@ export default function Prescription() {
     setRequestAttempt((attempt) => attempt + 1);
   }
 
-  function handleApprove() {
-    if (!prescription || status !== 'ready') return;
-    setPrescription({ ...prescription, approved: true });
-    navigate('/treatment');
+  async function handleApprove() {
+    if (workspaceRequestInFlight.current || !prescription || status !== 'ready') return;
+    if (!scanResult?.scanId || !selectedFinding) {
+      navigate('/diagnosis', { replace: true });
+      return;
+    }
+
+    workspaceRequestInFlight.current = true;
+    setWorkspaceStatus('preparing');
+    setWorkspaceError('');
+    const approvedPrescription = { ...prescription, approved: true };
+    setPrescription(approvedPrescription);
+
+    try {
+      const result = await apiClient.prepareWorkspace(scanResult.scanId, selectedFinding, approvedPrescription);
+      if (typeof result?.workspaceId !== 'string' || !result.workspaceId.trim()) {
+        throw new Error('The workspace response was incomplete.');
+      }
+      setWorkspaceId(result.workspaceId);
+      setWorkspaceStatus('ready');
+      navigate('/treatment');
+    } catch {
+      setWorkspaceError('The treatment workspace could not be prepared. Please retry.');
+      setWorkspaceStatus('error');
+    } finally {
+      workspaceRequestInFlight.current = false;
+    }
   }
 
-  if (!scanResult || !selectedFinding) return null;
+  if (!scanResult || !scanResult.scanId || !selectedFinding) return null;
 
   if (status === 'loading') {
     return (
@@ -195,6 +222,12 @@ export default function Prescription() {
           </div>
         </section>
 
+        {workspaceError && (
+          <p role="alert" className="mt-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-800">
+            {workspaceError}
+          </p>
+        )}
+
         <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
@@ -206,13 +239,27 @@ export default function Prescription() {
           </button>
           <button
             type="button"
-            disabled={!prescription || status !== 'ready'}
+            disabled={!prescription || status !== 'ready' || workspaceStatus === 'preparing'}
             onClick={handleApprove}
             className="flex items-center justify-center gap-2 rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <CheckCircle2 aria-hidden="true" className="size-4" />
-            Approve Treatment
-            <ArrowRight aria-hidden="true" className="size-4" />
+            {workspaceStatus === 'preparing' ? (
+              <>
+                <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                Preparing workspace
+              </>
+            ) : workspaceStatus === 'error' ? (
+              <>
+                <CheckCircle2 aria-hidden="true" className="size-4" />
+                Retry workspace preparation
+              </>
+            ) : (
+              <>
+                <CheckCircle2 aria-hidden="true" className="size-4" />
+                Approve Treatment
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -42,6 +42,13 @@ export const apiClient = {
     selectedFinding,
   }),
 
+  /** POST /api/workspace — prepare a controlled workspace for an approved prescription */
+  prepareWorkspace: (scanId, selectedFinding, prescription) => request('POST', '/api/workspace', {
+    scanId,
+    selectedFinding,
+    prescription,
+  }),
+
   /** POST /api/treat — execute an approved prescription */
   treat: (prescriptionId) => request('POST', '/api/treat', { prescriptionId }),
 

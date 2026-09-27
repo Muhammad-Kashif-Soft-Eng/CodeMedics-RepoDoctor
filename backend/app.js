@@ -15,11 +15,12 @@ app.get('/', (_req, res) => {
 });
 
 // ── Routes (uncommented as each service is built) ────────────────────────────
-app.use('/api/scan',      require('./routes/scan'));
-app.use('/api/diagnose',  require('./routes/diagnose'));
+app.use('/api/scan', require('./routes/scan'));
+app.use('/api/diagnose', require('./routes/diagnose'));
 app.use('/api/prescribe', require('./routes/prescribe'));
-app.use('/api/treat',     require('./routes/treat'));
-app.use('/api/verify',    require('./routes/verify'));
+app.use('/api/treat', require('./routes/treat'));
+app.use('/api/verify', require('./routes/verify'));
 app.use('/api/before-after', require('./routes/beforeAfter'));
+app.use('/api/treatment-workflow', require('./routes/treatmentWorkflow'));
 
 module.exports = app;

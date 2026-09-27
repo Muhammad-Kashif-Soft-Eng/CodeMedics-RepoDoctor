@@ -9,6 +9,7 @@ const AppError = require('./AppError');
 
 const MAX_AFFECTED_PATHS = 20;
 const WORKSPACE_ID_PATTERN = /^repodoctor-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const workspaceContexts = new Map();
 
 function invalidRequest(message = 'A scanned repository and approved prescription are required.') {
     return new AppError('INVALID_WORKSPACE_REQUEST', 400, message);
@@ -118,6 +119,17 @@ function resolveMaterializedPath(relativePath, workspacePath) {
     return absolutePath;
 }
 
+function copyWorkspaceContext(context) {
+    return {
+        scanResult: { ...context.scanResult },
+        prescription: {
+            ...context.prescription,
+            affectedPaths: [...context.prescription.affectedPaths],
+            treatmentSteps: [...context.prescription.treatmentSteps],
+        },
+    };
+}
+
 async function readApprovedFiles(repository, affectedPaths) {
     let metadata;
     let treeResult;
@@ -215,6 +227,28 @@ async function createWorkspace(params) {
             await fs.writeFile(absolutePath, fileContents.get(relativePath), { encoding: 'utf8', flag: 'wx', mode: 0o600 });
         }
 
+        workspaceContexts.set(workspaceId, {
+            scanResult: {
+                scanId: repository.scanId,
+                owner: metadata.owner,
+                repo: metadata.repo,
+                defaultBranch: repository.defaultBranch,
+                language: typeof params.scanResult.language === 'string' ? params.scanResult.language : null,
+            },
+            prescription: {
+                title: params.prescription.title,
+                reason: params.prescription.reason,
+                expectedOutcome: params.prescription.expectedOutcome,
+                affectedPaths: [...repository.affectedPaths],
+                treatmentSteps: Array.isArray(params.prescription.treatmentSteps)
+                    ? [...params.prescription.treatmentSteps]
+                    : [],
+                verificationPlan: params.prescription.verificationPlan,
+                riskNotes: params.prescription.riskNotes ?? null,
+                approved: params.prescription.approved,
+            },
+        });
+
         return {
             workspaceId,
             repository: {
@@ -237,7 +271,8 @@ async function runInWorkspace(workspaceId, operation) {
     }
     const root = await resolveWorkspaceRoot();
     const workspacePath = await resolveWorkspaceDirectory(root, workspaceId);
-    return operation(workspacePath);
+    const context = workspaceContexts.get(workspaceId);
+    return operation(workspacePath, context ? copyWorkspaceContext(context) : null);
 }
 
 async function cleanupWorkspace(workspaceId) {
@@ -248,6 +283,7 @@ async function cleanupWorkspace(workspaceId) {
     } catch {
         throw new AppError('WORKSPACE_CLEANUP_FAILED', 500, 'The temporary workspace could not be removed.');
     }
+    workspaceContexts.delete(workspaceId);
     return { workspaceId, removed: true };
 }
 

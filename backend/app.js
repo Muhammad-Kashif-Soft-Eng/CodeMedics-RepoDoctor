@@ -22,5 +22,6 @@ app.use('/api/treat', require('./routes/treat'));
 app.use('/api/verify', require('./routes/verify'));
 app.use('/api/before-after', require('./routes/beforeAfter'));
 app.use('/api/treatment-workflow', require('./routes/treatmentWorkflow'));
+app.use('/api/workspace', require('./routes/workspace'));
 
 module.exports = app;
